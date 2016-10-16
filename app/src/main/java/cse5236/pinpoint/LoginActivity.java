@@ -105,10 +105,13 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
     }
 
     private void handleSignInResult(GoogleSignInResult result) {
-        Log.d(TAG, "handleSginInREsult: " + result.isSuccess());
+        Log.d(TAG, "handleSignInResult: " + result.isSuccess());
         if (result.isSuccess()) {
             GoogleSignInAccount acct = result.getSignInAccount();
             firebaseAuthWithGoogle(acct);
+
+            Intent mapIntent = new Intent(this, MapsActivity.class);
+            startActivity(mapIntent);
         }
     }
 
