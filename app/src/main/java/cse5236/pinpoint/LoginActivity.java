@@ -39,6 +39,9 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.d(TAG, "LoginActivity: In onCreate()");
+
         setContentView(R.layout.activity_login);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -70,15 +73,35 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
     @Override
     public void onStart() {
         super.onStart();
+        Log.d(TAG, "LoginActivity: In onStart()");
         mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "LoginActivity: In onResume()");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "LoginActivity: In onPause()");
     }
 
     @Override
     public void onStop() {
         super.onStop();
+        Log.d(TAG, "LoginActivity: In onStop()");
         if (mAuthListener != null) {
             mAuth.removeAuthStateListener(mAuthListener);
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "LoginActivity: In onDestroy()");
     }
 
     @Override
