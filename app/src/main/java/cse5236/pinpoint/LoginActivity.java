@@ -6,6 +6,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
@@ -14,6 +15,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
@@ -35,6 +38,8 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
     private FirebaseAuth.AuthStateListener mAuthListener;
 
     public GoogleApiClient mGoogleApiClient;
+    private TextView mStatusTextView;
+    private TextView mDetailTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +59,12 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
 
+        mStatusTextView = (TextView) findViewById(R.id.status);
+        mDetailTextView = (TextView) findViewById(R.id.detail);
+
         findViewById(R.id.google_sign_in_button).setOnClickListener(this);
+        findViewById(R.id.sign_out_button).setOnClickListener(this);
+        findViewById(R.id.map_button).setOnClickListener(this);
 
         mAuth = FirebaseAuth.getInstance();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
@@ -66,6 +76,7 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
                 } else {
                     Log.d(TAG, "onAuthStateChanged:signed_out");
                 }
+                updateUI(user);
             }
         };
     }
@@ -104,16 +115,19 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
         Log.d(TAG, "LoginActivity: In onDestroy()");
     }
 
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-
-    }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.google_sign_in_button:
                 signIn();
+                break;
+            case R.id.sign_out_button:
+                signOut();
+                break;
+            case R.id.map_button:
+                Intent mapIntent = new Intent(this, MapsActivity.class);
+                startActivity(mapIntent);
                 break;
         }
     }
@@ -132,9 +146,6 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
         if (result.isSuccess()) {
             GoogleSignInAccount acct = result.getSignInAccount();
             firebaseAuthWithGoogle(acct);
-
-            Intent mapIntent = new Intent(this, MapsActivity.class);
-            startActivity(mapIntent);
         }
     }
 
@@ -142,6 +153,29 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
+
+    private void signOut() {
+        // Firebase sign out
+        mAuth.signOut();
+
+        // Google sign out
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
+                new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(@NonNull Status status) {
+                        updateUI(null);
+                    }
+                });
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        // An unresolvable error has occurred and Google APIs (including Sign-In) will not
+        // be available.
+        Log.d(TAG, "onConnectionFailed:" + connectionResult);
+        Toast.makeText(this, "Google Play Services error.", Toast.LENGTH_SHORT).show();
+    }
+
 
     private void firebaseAuthWithGoogle(GoogleSignInAccount acct) {
         Log.d(TAG, "firebaseAuthWithGoogle: " + acct.getId());
@@ -160,5 +194,21 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
                         }
                     }
                 });
+    }
+
+    private void updateUI(FirebaseUser user) {
+        if (user != null) {
+            mStatusTextView.setText(getString(R.string.google_status_fmt, user.getEmail()));
+            mDetailTextView.setText(getString(R.string.firebase_status_fmt, user.getDisplayName()));
+
+            findViewById(R.id.google_sign_in_button).setVisibility(View.GONE);
+            findViewById(R.id.sign_out_and_disconnect).setVisibility(View.VISIBLE);
+        } else {
+            mStatusTextView.setText(R.string.signed_out);
+            mDetailTextView.setText(null);
+
+            findViewById(R.id.google_sign_in_button).setVisibility(View.VISIBLE);
+            findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
+        }
     }
 }
