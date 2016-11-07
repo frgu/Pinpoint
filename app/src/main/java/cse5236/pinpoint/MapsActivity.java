@@ -1,6 +1,8 @@
 package cse5236.pinpoint;
 
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,6 +16,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -26,6 +29,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -35,11 +39,16 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 public class MapsActivity extends AppCompatActivity
         implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        LocationListener,
+        GoogleMap.OnMarkerClickListener {
 
     private static final String TAG = "MapsActivity";
 
@@ -49,12 +58,18 @@ public class MapsActivity extends AppCompatActivity
     EditText newPostContent;
     Button newPostSubmit;
 
+    TextView viewPostTitle;
+    EditText newMessageContent;
+    Button newMessageSubmit;
+
     GoogleMap mGoogleMap;
     SupportMapFragment mapFrag;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     LatLng mCoordinates;
+    Geocoder geocoder;
+    List<Address> addresses;
 
     FloatingActionButton fab;
 
@@ -77,6 +92,8 @@ public class MapsActivity extends AppCompatActivity
 
         mapFrag = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFrag.getMapAsync(this);
+
+        geocoder = new Geocoder(this, Locale.getDefault());
 
         mDatabase = FirebaseDatabase.getInstance().getReference();
         mUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -134,8 +151,46 @@ public class MapsActivity extends AppCompatActivity
         for (DataSnapshot id : ids) {
             Log.d(TAG, id.toString());
             LatLng threadLatLng = new LatLng((double) id.child("lat").getValue(), (double) id.child("lng").getValue());
-            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng));
+            String name = id.getKey();
+//            try {
+//                addresses = geocoder.getFromLocation(threadLatLng.latitude, threadLatLng.longitude, 1);
+//                name = addresses.get(0).getAddressLine(0);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng).title(name));
         }
+    }
+
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+
+        fab.setVisibility(View.GONE);
+
+        LatLng pos = marker.getPosition();
+        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 11));
+
+        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
+        View inflatedLayout = inflater.inflate(R.layout.fragment_view_thread, mapContainer, false);
+        mapContainer.addView(inflatedLayout);
+
+        viewPostTitle = (TextView) findViewById(R.id.viewPostTitle);
+        newMessageContent = (EditText) findViewById(R.id.newMessageContent);
+        newMessageSubmit = (Button) findViewById(R.id.newMessageSubmit);
+
+        String id = marker.getTitle();
+        try {
+            addresses = geocoder.getFromLocation(pos.latitude, pos.longitude, 1);
+            String name = addresses.get(0).getAddressLine(0);
+            viewPostTitle.setText(name);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        DatabaseReference messagesRoot = mDatabase.child("threads").child(id).child("messages").getRef();
+
+
+//        Log.d(TAG, thread.toString());
+        return true;
     }
 
     public void writeNewThread(String text) {
@@ -155,7 +210,7 @@ public class MapsActivity extends AppCompatActivity
         // Save first message
         DatabaseReference messagesRoot = threadRoot.child("messages").push();
         String messageId = messagesRoot.toString().substring(messagesRoot.getParent().toString().length()+1);
-        Message rootMessage = new Message(messageId, mUser.getUid(), text, timestamp.toString());
+        Message rootMessage = new Message(messageId, mUser.getUid(), mUser.getDisplayName(), text, timestamp.toString());
         messagesRoot.setValue(rootMessage);
     }
 
@@ -181,6 +236,7 @@ public class MapsActivity extends AppCompatActivity
                 newThread();
             }
         });
+        mGoogleMap.setOnMarkerClickListener(this);
 
         //Initialize Google Play Services
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
