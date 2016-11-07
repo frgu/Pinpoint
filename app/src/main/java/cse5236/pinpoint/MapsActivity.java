@@ -4,9 +4,16 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -18,10 +25,15 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class MapsActivity extends AppCompatActivity
         implements OnMapReadyCallback,
@@ -29,13 +41,26 @@ public class MapsActivity extends AppCompatActivity
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener{
 
+    private static final String TAG = "MapsActivity";
+
+    RelativeLayout mapContainer;
+    RelativeLayout newPostLayout;
+
+    EditText newPostContent;
+    Button newPostSubmit;
 
     GoogleMap mGoogleMap;
     SupportMapFragment mapFrag;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
-    Marker mCurrLocationMarker;
+    LatLng mCoordinates;
+
+    FloatingActionButton fab;
+
+    private DatabaseReference mDatabase;
+    private FirebaseUser mUser;
+    ValueEventListener threadListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -47,8 +72,91 @@ public class MapsActivity extends AppCompatActivity
             checkLocationPermission();
         }
 
+        mapContainer = (RelativeLayout) findViewById(R.id.mapContainer);
+        newPostLayout = (RelativeLayout) findViewById(R.id.newPostLayout);
+
         mapFrag = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFrag.getMapAsync(this);
+
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mUser = FirebaseAuth.getInstance().getCurrentUser();
+        threadListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "Changed: " + dataSnapshot.getChildrenCount());
+                updateMarkers(dataSnapshot);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
+            }
+        };
+        mDatabase.child("threadIds").addValueEventListener(threadListener);
+
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCoordinates = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mCoordinates, 11));
+                newThread();
+            }
+        });
+    }
+
+    public void newThread() {
+
+        fab.setVisibility(View.GONE);
+
+        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
+        View inflatedLayout = inflater.inflate(R.layout.fragment_new_post, mapContainer, false);
+        mapContainer.addView(inflatedLayout);
+
+        newPostContent = (EditText) findViewById(R.id.newPostContent);
+        newPostSubmit = (Button) findViewById(R.id.newPostSubmit);
+        newPostSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "Clicked Send Button: " + newPostContent.getText());
+                writeNewThread(newPostContent.getText().toString());
+                View newPostView = findViewById(R.id.newPostLayout);
+                mapContainer.removeView(newPostView);
+                fab.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    public void updateMarkers(DataSnapshot threadIds) {
+        mGoogleMap.clear();
+
+        Iterable<DataSnapshot> ids = threadIds.getChildren();
+        for (DataSnapshot id : ids) {
+            Log.d(TAG, id.toString());
+            LatLng threadLatLng = new LatLng((double) id.child("lat").getValue(), (double) id.child("lng").getValue());
+            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng));
+        }
+    }
+
+    public void writeNewThread(String text) {
+        // Create new Thread child
+        DatabaseReference threadRoot = mDatabase.child("threads").push();
+        Long timestamp = System.currentTimeMillis()/1000;
+
+        // Save Thread attributes
+        String rootRef = threadRoot.toString().substring(threadRoot.getParent().toString().length()+1);
+        Thread newThread = new Thread(rootRef, timestamp.toString(), mCoordinates.latitude, mCoordinates.longitude);
+        threadRoot.setValue(newThread);
+
+        // Store thread id separately as an index
+        ThreadIndex ti = new ThreadIndex(mCoordinates.latitude, mCoordinates.longitude);
+        mDatabase.child("threadIds").child(rootRef).setValue(ti);
+
+        // Save first message
+        DatabaseReference messagesRoot = threadRoot.child("messages").push();
+        String messageId = messagesRoot.toString().substring(messagesRoot.getParent().toString().length()+1);
+        Message rootMessage = new Message(messageId, mUser.getUid(), text, timestamp.toString());
+        messagesRoot.setValue(rootMessage);
     }
 
     @Override
@@ -65,7 +173,14 @@ public class MapsActivity extends AppCompatActivity
     public void onMapReady(GoogleMap googleMap)
     {
         mGoogleMap=googleMap;
-        mGoogleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        mGoogleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        mGoogleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(LatLng latLng) {
+                mCoordinates = latLng;
+                newThread();
+            }
+        });
 
         //Initialize Google Play Services
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -105,6 +220,11 @@ public class MapsActivity extends AppCompatActivity
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public void onConnectionSuspended(int i) {}
 
     @Override
@@ -114,17 +234,9 @@ public class MapsActivity extends AppCompatActivity
     public void onLocationChanged(Location location)
     {
         mLastLocation = location;
-        if (mCurrLocationMarker != null) {
-            mCurrLocationMarker.remove();
-        }
 
         //Place current location marker
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
-        markerOptions.title("Current Position");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
-        mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
 
         //move map camera
         mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
@@ -146,8 +258,7 @@ public class MapsActivity extends AppCompatActivity
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     android.Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-                //TODO:
-                // Show an expanation to the user *asynchronously* -- don't block
+                // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
 
@@ -197,7 +308,6 @@ public class MapsActivity extends AppCompatActivity
                     // functionality that depends on this permission.
                     Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
                 }
-                return;
             }
 
             // other 'case' lines to check for other

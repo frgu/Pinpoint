@@ -1,0 +1,29 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:context="cse5236.pinpoint.NewPostFragment"
+    android:id="@+id/newPostLayout"
+    android:layout_alignParentBottom="true"
+    android:background="#FFFFFF">
+
+    <Button
+        android:id="@+id/newPostSubmit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Send"
+        android:layout_alignBaseline="@+id/newPostContent"
+        android:layout_alignBottom="@+id/newPostContent"
+        android:layout_alignParentEnd="true" />
+
+    <EditText
+        android:id="@+id/newPostContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lines="2"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:hint="Enter a message" />
+
+</RelativeLayout>
