@@ -46,11 +46,10 @@
         android:id="@+id/viewPostScrollView">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/viewPostScrollLayout"
             android:orientation="vertical">
-
         </LinearLayout>
     </ScrollView>
 
