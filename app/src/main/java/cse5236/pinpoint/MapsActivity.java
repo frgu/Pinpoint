@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -43,6 +44,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,7 +53,9 @@ public class MapsActivity extends AppCompatActivity
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
-        GoogleMap.OnMarkerClickListener {
+        GoogleMap.OnMarkerClickListener,
+        NewPostFragment.OnNewPostListener,
+        ViewThreadFragment.OnThreadClickListener{
 
     private static final String TAG = "MapsActivity";
 
@@ -81,9 +85,15 @@ public class MapsActivity extends AppCompatActivity
     private FirebaseUser mUser;
     ValueEventListener threadListener;
 
+
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    public void onNewPostSelected() { }
+
+    @Override
+    public void onThreadClick() { }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
@@ -121,7 +131,12 @@ public class MapsActivity extends AppCompatActivity
             public void onClick(View v) {
                 mCoordinates = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mCoordinates, 11));
-                newThread();
+
+                NewPostFragment newPostFragment = new NewPostFragment();
+                FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.fragment_placeholder, newPostFragment);
+                ft.addToBackStack(null);
+                ft.commit();
             }
         });
     }
@@ -162,102 +177,107 @@ public class MapsActivity extends AppCompatActivity
 
     @Override
     public boolean onMarkerClick(final Marker marker) {
-
-        fab.setVisibility(View.GONE);
-
-        LatLng pos = marker.getPosition();
-        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 11));
-
-        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
-        View inflatedLayout = inflater.inflate(R.layout.fragment_view_thread, mapContainer, false);
-        mapContainer.addView(inflatedLayout);
-
-        viewPostTitle = (TextView) findViewById(R.id.viewPostTitle);
-        newMessageContent = (EditText) findViewById(R.id.newMessageContent);
-        newMessageSubmit = (Button) findViewById(R.id.newMessageSubmit);
-        messageLayout = (LinearLayout) findViewById(R.id.viewPostScrollLayout);
-
-        final String id = marker.getTitle();
-        try {
-            addresses = geocoder.getFromLocation(pos.latitude, pos.longitude, 1);
-            String name = addresses.get(0).getAddressLine(0);
-            viewPostTitle.setText(name);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        DatabaseReference messagesRoot = mDatabase.child("threads").child(id).child("messages");
-
-        messagesRoot.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d(TAG, "message count: " + dataSnapshot.getChildrenCount());
-                Iterable<DataSnapshot> messages = dataSnapshot.getChildren();
-                for (DataSnapshot message : messages) {
-                    final String messageId = message.child("id").getValue().toString();
-                    TextView messageHeader = new TextView(getApplicationContext());
-                    TextView messageBody = new TextView(getApplicationContext());
-                    messageHeader.setText(message.child("userName").getValue().toString());
-                    messageBody.setText(message.child("content").getValue().toString());
-                    messageHeader.setLayoutParams(new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT));
-                    messageBody.setLayoutParams(new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT));
-                    messageHeader.setTextSize(15f);
-                    messageBody.setGravity(Gravity.CENTER);
-                    messageBody.setTextSize(25f);
-                    messageBody.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            mDatabase.child("threads").child(id).child("messages").child(messageId).child("content").setValue(newMessageContent.getText().toString());
-
-                            View viewPostView = findViewById(R.id.viewPostLayout);
-                            mapContainer.removeView(viewPostView);
-                            fab.setVisibility(View.VISIBLE);
-                        }
-                    });
-                    messageBody.setOnLongClickListener(new View.OnLongClickListener() {
-                        @Override
-                        public boolean onLongClick(View view) {
-                            mDatabase.child("threads").child(id).child("messages").child(messageId).removeValue();
-
-                            View viewPostView = findViewById(R.id.viewPostLayout);
-                            mapContainer.removeView(viewPostView);
-                            fab.setVisibility(View.VISIBLE);
-                            return false;
-                        }
-                    });
-                    messageLayout.addView(messageHeader);
-                    messageLayout.addView(messageBody);
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.w(TAG, "loadMessage:onCancelled", databaseError.toException());
-            }
-        });
-
-        newMessageSubmit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                DatabaseReference messagesRoot = mDatabase.child("threads").child(id).child("messages");
-                DatabaseReference newMessage = messagesRoot.push();
-                String messageId = newMessage.toString().substring(newMessage.getParent().toString().length()+1);
-                Long timestamp = System.currentTimeMillis()/1000;
-                Message message = new Message(messageId, mUser.getUid(), mUser.getDisplayName(), newMessageContent.getText().toString(), timestamp.toString());
-                newMessage.setValue(message);
-
-                View viewPostView = findViewById(R.id.viewPostLayout);
-                mapContainer.removeView(viewPostView);
-                fab.setVisibility(View.VISIBLE);
-
-            }
-        });
+        ViewThreadFragment viewThreadFragment = new ViewThreadFragment();
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.fragment_placeholder, viewThreadFragment);
+        ft.addToBackStack(null);
+        ft.commit();
 
 
-//        Log.d(TAG, thread.toString());
+//        fab.setVisibility(View.GONE);
+//
+//        LatLng pos = marker.getPosition();
+//        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 11));
+//
+//        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
+//        View inflatedLayout = inflater.inflate(R.layout.fragment_view_thread, mapContainer, false);
+//        mapContainer.addView(inflatedLayout);
+//
+//        viewPostTitle = (TextView) findViewById(R.id.viewPostTitle);
+//        newMessageContent = (EditText) findViewById(R.id.newMessageContent);
+//        newMessageSubmit = (Button) findViewById(R.id.newMessageSubmit);
+//        messageLayout = (LinearLayout) findViewById(R.id.viewPostScrollLayout);
+//
+//        final String id = marker.getTitle();
+//        try {
+//            addresses = geocoder.getFromLocation(pos.latitude, pos.longitude, 1);
+//            String name = addresses.get(0).getAddressLine(0);
+//            viewPostTitle.setText(name);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        DatabaseReference messagesRoot = mDatabase.child("threads").child(id).child("messages");
+//
+//        messagesRoot.addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(DataSnapshot dataSnapshot) {
+//                Log.d(TAG, "message count: " + dataSnapshot.getChildrenCount());
+//                Iterable<DataSnapshot> messages = dataSnapshot.getChildren();
+//                for (DataSnapshot message : messages) {
+//                    final String messageId = message.child("id").getValue().toString();
+//                    TextView messageHeader = new TextView(getApplicationContext());
+//                    TextView messageBody = new TextView(getApplicationContext());
+//                    messageHeader.setText(message.child("userName").getValue().toString());
+//                    messageBody.setText(message.child("content").getValue().toString());
+//                    messageHeader.setLayoutParams(new ViewGroup.LayoutParams(
+//                            ViewGroup.LayoutParams.MATCH_PARENT,
+//                            ViewGroup.LayoutParams.WRAP_CONTENT));
+//                    messageBody.setLayoutParams(new ViewGroup.LayoutParams(
+//                            ViewGroup.LayoutParams.MATCH_PARENT,
+//                            ViewGroup.LayoutParams.WRAP_CONTENT));
+//                    messageHeader.setTextSize(15f);
+//                    messageBody.setGravity(Gravity.CENTER);
+//                    messageBody.setTextSize(25f);
+//                    messageBody.setOnClickListener(new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View view) {
+//                            mDatabase.child("threads").child(id).child("messages").child(messageId).child("content").setValue(newMessageContent.getText().toString());
+//
+//                            View viewPostView = findViewById(R.id.viewPostLayout);
+//                            mapContainer.removeView(viewPostView);
+//                            fab.setVisibility(View.VISIBLE);
+//                        }
+//                    });
+//                    messageBody.setOnLongClickListener(new View.OnLongClickListener() {
+//                        @Override
+//                        public boolean onLongClick(View view) {
+//                            mDatabase.child("threads").child(id).child("messages").child(messageId).removeValue();
+//
+//                            View viewPostView = findViewById(R.id.viewPostLayout);
+//                            mapContainer.removeView(viewPostView);
+//                            fab.setVisibility(View.VISIBLE);
+//                            return false;
+//                        }
+//                    });
+//                    messageLayout.addView(messageHeader);
+//                    messageLayout.addView(messageBody);
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(DatabaseError databaseError) {
+//                Log.w(TAG, "loadMessage:onCancelled", databaseError.toException());
+//            }
+//        });
+//
+//        newMessageSubmit.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                DatabaseReference messagesRoot = mDatabase.child("threads").child(id).child("messages");
+//                DatabaseReference newMessage = messagesRoot.push();
+//                String messageId = newMessage.toString().substring(newMessage.getParent().toString().length()+1);
+//                Long timestamp = System.currentTimeMillis()/1000;
+//                Message message = new Message(messageId, mUser.getUid(), mUser.getDisplayName(), newMessageContent.getText().toString(), timestamp.toString());
+//                newMessage.setValue(message);
+//
+//                View viewPostView = findViewById(R.id.viewPostLayout);
+//                mapContainer.removeView(viewPostView);
+//                fab.setVisibility(View.VISIBLE);
+//
+//            }
+//        });
+
+
         return true;
     }
 
