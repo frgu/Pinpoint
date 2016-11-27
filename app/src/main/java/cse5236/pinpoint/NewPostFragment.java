@@ -1,15 +1,19 @@
 package cse5236.pinpoint;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 
 /**
@@ -21,9 +25,21 @@ import android.widget.EditText;
  * create an instance of this fragment.
  */
 public class NewPostFragment extends Fragment {
-    private static final String TAG = "NewPostFragment";
+//    private static final String TAG = "NewPostFragment";
 
     private OnNewPostListener mListener;
+
+    TextView newPostLocation;
+    EditText newPostSubject;
+    EditText newPostMessage;
+    FloatingActionButton newPostSubmit;
+
+    private String postLocation;
+    private double latitude;
+    private double longitude;
+
+    private DatabaseReference mDatabase;
+    private FirebaseUser mUser;
 
     public NewPostFragment() {
         // Required empty public constructor
@@ -33,14 +49,17 @@ public class NewPostFragment extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
+     * @param latitude Latitude of new thread.
+     * @param longitude Longitude of new thread.
+     * @param location Address of new thread.
      * @return A new instance of fragment NewPostFragment.
      */
-    // TODO: Rename and change types and number of parameters
-    public static NewPostFragment newInstance(String param1, String param2) {
+    public static NewPostFragment newInstance(double latitude, double longitude, String location) {
         NewPostFragment fragment = new NewPostFragment();
         Bundle args = new Bundle();
+        args.putDouble("lat", latitude);
+        args.putDouble("lng", longitude);
+        args.putString("loc", location);
         fragment.setArguments(args);
         return fragment;
     }
@@ -48,13 +67,62 @@ public class NewPostFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (getArguments() != null) {
+            latitude = getArguments().getDouble("lat");
+            longitude = getArguments().getDouble("lng");
+            postLocation = getArguments().getString("loc");
+        }
+
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mUser = FirebaseAuth.getInstance().getCurrentUser();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_new_post, container, false);
+        View view = inflater.inflate(R.layout.fragment_new_post, container, false);
+
+        newPostLocation = (TextView) view.findViewById(R.id.newPostLocation);
+        newPostSubject = (EditText) view.findViewById(R.id.newPostSubject);
+        newPostMessage = (EditText) view.findViewById(R.id.newPostContent);
+        newPostSubmit = (FloatingActionButton) view.findViewById(R.id.newPostFab);
+
+        newPostLocation.setText(postLocation);
+
+        newPostSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (newPostMessage.getText().toString().length() > 0) {
+                    String subject = newPostSubject.getText().toString();
+                    String message = newPostMessage.getText().toString();
+
+                    DatabaseReference threadRoot = mDatabase.child("threads").push();
+                    Long timestamp = System.currentTimeMillis() / 1000;
+
+                    // Save Thread attributes
+                    String rootRef = threadRoot.toString().substring(threadRoot.getParent().toString().length() + 1);
+                    Thread newThread = new Thread(rootRef, timestamp.toString(), subject, postLocation, latitude, longitude);
+                    threadRoot.setValue(newThread);
+
+                    // Store thread id separately as an index
+                    ThreadIndex ti = new ThreadIndex(latitude, longitude);
+                    mDatabase.child("threadIds").child(rootRef).setValue(ti);
+
+                    // Save first message
+                    DatabaseReference messagesRoot = threadRoot.child("messages").push();
+                    String messageId = messagesRoot.toString().substring(messagesRoot.getParent().toString().length() + 1);
+                    Message rootMessage = new Message(messageId, mUser.getUid(), mUser.getDisplayName(), message, timestamp.toString());
+                    messagesRoot.setValue(rootMessage);
+
+                    mListener.onNewPostSubmit();
+                }
+            }
+        });
+
+        return view;
     }
 
     @Override
@@ -85,7 +153,6 @@ public class NewPostFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnNewPostListener {
-        // TODO: Update argument type and name
-        void onNewPostSelected();
+        void onNewPostSubmit();
     }
 }

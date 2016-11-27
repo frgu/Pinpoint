@@ -14,4 +14,7 @@
     <string name="loading">Loading…</string>
     <string name="firebase_status_fmt">Firebase User: %s</string>
     <string name="firebase_user_management">Firebase User Management</string>
+    <string name="new_post_subject_hint">Subject</string>
+    <string name="new_post_message_hint">Message</string>
+    <string name="new_post_location_default">New Thread</string>
 </resources>
