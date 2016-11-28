@@ -50,6 +50,8 @@ public class MapsActivity extends AppCompatActivity
 
     private static final String TAG = "MapsActivity";
 
+    private String currentView = "map";
+
     GoogleMap mGoogleMap;
     SupportMapFragment mapFrag;
     LocationRequest mLocationRequest;
@@ -70,12 +72,14 @@ public class MapsActivity extends AppCompatActivity
     public void onNewPostSubmit() {
         getSupportFragmentManager().popBackStack();
         fab.setVisibility(View.VISIBLE);
+        currentView = "map";
     }
 
     @Override
     public void onMessageSubmit() {
         getSupportFragmentManager().popBackStack();
         fab.setVisibility(View.VISIBLE);
+        currentView = "map";
     }
 
     @Override
@@ -125,6 +129,8 @@ public class MapsActivity extends AppCompatActivity
                     e.printStackTrace();
                 }
 
+                currentView = "new";
+
                 NewPostFragment newPostFragment = NewPostFragment.newInstance(mCoordinates.latitude, mCoordinates.longitude, name);
                 FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
                 ft.replace(R.id.fragment_placeholder, newPostFragment);
@@ -147,12 +153,14 @@ public class MapsActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onMarkerClick(final Marker marker) {
+    public boolean onMarkerClick(Marker marker) {
         fab.setVisibility(View.GONE);
 
         LatLng pos = marker.getPosition();
         mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 11));
         String name = marker.getTitle();
+
+        currentView = "view";
 
         ViewThreadFragment viewThreadFragment = ViewThreadFragment.newInstance(name);
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -189,6 +197,8 @@ public class MapsActivity extends AppCompatActivity
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                currentView = "new";
 
                 NewPostFragment newPostFragment = NewPostFragment.newInstance(latLng.latitude, latLng.longitude, name);
                 FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -229,6 +239,14 @@ public class MapsActivity extends AppCompatActivity
         else {
             buildGoogleApiClient();
             mGoogleMap.setMyLocationEnabled(true);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (currentView.equals("view") || currentView.equals("new")) {
+            fab.setVisibility(View.VISIBLE);
+            currentView = "map";
         }
     }
 
