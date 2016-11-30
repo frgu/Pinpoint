@@ -104,11 +104,11 @@ public class NewPostFragment extends Fragment {
 
                     // Save Thread attributes
                     String rootRef = threadRoot.toString().substring(threadRoot.getParent().toString().length() + 1);
-                    Thread newThread = new Thread(rootRef, timestamp.toString(), subject, postLocation, latitude, longitude);
+                    Thread newThread = new Thread(rootRef, timestamp.toString(), subject, mUser.getUid(), postLocation, latitude, longitude);
                     threadRoot.setValue(newThread);
 
                     // Store thread id separately as an index
-                    ThreadIndex ti = new ThreadIndex(latitude, longitude);
+                    ThreadIndex ti = new ThreadIndex(latitude, longitude, rootRef, mUser.getUid());
                     mDatabase.child("threadIds").child(rootRef).setValue(ti);
 
                     // Save first message

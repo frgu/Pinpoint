@@ -147,8 +147,9 @@ public class MapsActivity extends AppCompatActivity
         for (DataSnapshot id : ids) {
             Log.d(TAG, id.toString());
             LatLng threadLatLng = new LatLng((double) id.child("lat").getValue(), (double) id.child("lng").getValue());
-            String name = id.getKey();
-            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng).title(name)).setDraggable(true);
+            String name = id.child("id").getValue().toString();
+            String userId = id.child("userId").getValue().toString();
+            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng).title(name).snippet(userId)).setDraggable(true);
         }
     }
 
@@ -212,8 +213,12 @@ public class MapsActivity extends AppCompatActivity
             @Override
             public void onMarkerDragStart(Marker marker) {
                 // Delete thread
-                mDatabase.child("threads").child(marker.getTitle()).removeValue();
-                mDatabase.child("threadIds").child(marker.getTitle()).removeValue();
+                if (marker.getSnippet().equals(mUser.getUid())) {
+                    mDatabase.child("threads").child(marker.getTitle()).removeValue();
+                    mDatabase.child("threadIds").child(marker.getTitle()).removeValue();
+                } else {
+                    Toast.makeText(getApplicationContext(), "You cannot delete a thread you did not create.", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override

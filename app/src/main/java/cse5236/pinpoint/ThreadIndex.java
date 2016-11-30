@@ -8,13 +8,17 @@ public class ThreadIndex {
 
     public double lat;
     public double lng;
+    public String id;
+    public String userId;
 
     public ThreadIndex() {
 
     }
 
-    public ThreadIndex(double lat, double lng) {
+    public ThreadIndex(double lat, double lng, String id, String userId) {
         this.lat = lat;
         this.lng = lng;
+        this.id = id;
+        this.userId = userId;
     }
 }
