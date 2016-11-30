@@ -6,7 +6,7 @@
     <string name="google_title_text">PinPoint</string>
     <string name="Content">Find the Activities Nearby</string>
     <string name="disconnect">Disconnect</string>
-    <string name="signed_out">Find the Activities Nearby</string>
+    <string name="signed_out">Sign_Out</string>
     <string name="title_activity_google_sign_in">GoogleSignInActivity</string>
     <string name="label_google_sign_in">Firebase + Google Sign In</string>
     <string name="desc_google_sign_in">Use a Google Sign In credential to authenticate with Firebase.</string>
@@ -17,4 +17,7 @@
     <string name="new_post_subject_hint">Subject</string>
     <string name="new_post_message_hint">Message</string>
     <string name="new_post_location_default">New Thread</string>
+    <string name="Sign_Out">Sign_Out</string>
+    <string name="Get_Location">Get Location</string>
+    <string name="Sign_In">Sign_In</string>
 </resources>

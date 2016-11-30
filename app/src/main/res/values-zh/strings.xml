@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">附件活动</string>
+    <string name="desc_firebase_lockup">firbase用户名</string>
+    <string name="google_title_text">附件活动</string>
+    <string name="google_status_fmt">谷歌: %s</string>
+    <string name="disconnect">断开连接</string>
+    <string name="firebase_status_fmt">firbase用户名: %s</string>
+    <string name="firebase_user_management">firbase管理</string>
+    <string name="hello_blank_fragment">你好</string>
+    <string name="label_google_sign_in">谷歌登录</string>
+    <string name="loading">等待..</string>
+    <string name="new_post_location_default">新的进程</string>
+    <string name="new_post_message_hint">留言</string>
+    <string name="new_post_subject_hint">主题</string>
+    <string name="title_activity_google_sign_in">谷歌登录活动</string>
+    <string name="signed_out">退出登录</string>
+    <string name="title_activity_maps">附件活动</string>
+    <string name="Content">发现附件的活动</string>
+    <string name="Get_Location">获取当前位置</string>
+    <string name="Sign_Out">退出登录</string>
+    <string name="google_maps_key" translatable="false"></string>
+    <string name="Sign_In">谷歌账号登录</string>
+</resources>

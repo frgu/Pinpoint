@@ -34,12 +34,12 @@
         <TextView
             android:id="@+id/status"
             style="@style/ThemeOverlay.MyTextDetail"
-            android:text="Find The Activities Nearby" />
+            android:text="@string/Content" />
 
         <TextView
             android:id="@+id/detail"
             style="@style/ThemeOverlay.MyTextDetail"
-            tools:text="Find The Activities Nearby" />
+            tools:text="@string/Content" />
 
     </LinearLayout>
 
@@ -58,6 +58,7 @@
             android:layout_centerInParent="true"
             android:visibility="visible"
             tools:visibility="gone"
+            android:text="@string/Sign_In"
             />
 
         <LinearLayout
@@ -76,7 +77,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Sign out"
+                android:text="@string/signed_out"
                 android:theme="@style/ThemeOverlay.MyDarkButton" />
 
             <Button
@@ -84,7 +85,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Get Location"
+                android:text="@string/Get_Location"
                 android:theme="@style/ThemeOverlay.MyDarkButton" />
         </LinearLayout>
 
