@@ -24,6 +24,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -149,7 +151,15 @@ public class MapsActivity extends AppCompatActivity
             LatLng threadLatLng = new LatLng((double) id.child("lat").getValue(), (double) id.child("lng").getValue());
             String name = id.child("id").getValue().toString();
             String userId = id.child("userId").getValue().toString();
-            mGoogleMap.addMarker(new MarkerOptions().position(threadLatLng).title(name).snippet(userId)).setDraggable(true);
+            BitmapDescriptor bdf = BitmapDescriptorFactory.defaultMarker();
+            if (userId.equals(mUser.getUid())) {
+                bdf = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+            }
+            mGoogleMap.addMarker(new MarkerOptions()
+                    .icon(bdf)
+                    .position(threadLatLng)
+                    .title(name)
+                    .snippet(userId)).setDraggable(true);
         }
     }
 
@@ -168,7 +178,6 @@ public class MapsActivity extends AppCompatActivity
         ft.replace(R.id.fragment_placeholder, viewThreadFragment);
         ft.addToBackStack(null);
         ft.commit();
-
 
         return true;
     }
