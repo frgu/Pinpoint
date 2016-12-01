@@ -25,10 +25,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 
-/**
- * Created by freddygu on 10/14/16.
- */
-
 public class LoginActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, View.OnClickListener{
 
     private static final String TAG = "LoginActivity";
@@ -65,11 +61,13 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
         findViewById(R.id.google_sign_in_button).setOnClickListener(this);
         findViewById(R.id.sign_out_button).setOnClickListener(this);
         findViewById(R.id.map_button).setOnClickListener(this);
+        findViewById(R.id.guest_sign_in).setOnClickListener(this);
 
         mAuth = FirebaseAuth.getInstance();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                Log.d(TAG, "IN LISTENER CALLBACK");
                 FirebaseUser user = firebaseAuth.getCurrentUser();
                 if (user != null) {
                     Log.d(TAG, "onAuthStateChanged:signed_in: " + user.getUid());
@@ -128,6 +126,18 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
             case R.id.map_button:
                 Intent mapIntent = new Intent(this, MapsActivity.class);
                 startActivity(mapIntent);
+                break;
+            case R.id.guest_sign_in:
+                Log.d(TAG, "IN ONCLICK");
+                mAuth.signInAnonymously()
+                        .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                            @Override
+                            public void onComplete(@NonNull Task<AuthResult> task) {
+                                if (!task.isSuccessful()) {
+                                    Toast.makeText(getApplicationContext(), "Authentication failed.", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
                 break;
         }
     }
@@ -198,16 +208,23 @@ public class LoginActivity extends FragmentActivity implements GoogleApiClient.O
 
     private void updateUI(FirebaseUser user) {
         if (user != null) {
-            mStatusTextView.setText(getString(R.string.google_status_fmt, user.getEmail()));
-            mDetailTextView.setText(getString(R.string.firebase_status_fmt, user.getDisplayName()));
+            if (user.getDisplayName() == null) {
+                mStatusTextView.setText(null);
+                mDetailTextView.setText(getString(R.string.firebase_status_fmt, "Guest"));
+            } else {
+                mStatusTextView.setText(getString(R.string.google_status_fmt, user.getEmail()));
+                mDetailTextView.setText(getString(R.string.firebase_status_fmt, user.getDisplayName()));
+            }
 
             findViewById(R.id.google_sign_in_button).setVisibility(View.GONE);
+            findViewById(R.id.guest_sign_in).setVisibility(View.GONE);
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.VISIBLE);
         } else {
             mStatusTextView.setText(R.string.signed_out);
             mDetailTextView.setText(null);
 
             findViewById(R.id.google_sign_in_button).setVisibility(View.VISIBLE);
+            findViewById(R.id.guest_sign_in).setVisibility(View.VISIBLE);
             findViewById(R.id.sign_out_and_disconnect).setVisibility(View.GONE);
         }
     }

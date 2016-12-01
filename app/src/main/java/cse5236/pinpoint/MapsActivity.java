@@ -62,6 +62,7 @@ public class MapsActivity extends AppCompatActivity
     LatLng mCoordinates;
     Geocoder geocoder;
     List<Address> addresses;
+    LatLng prevMarkerCoordinates;
 
     FloatingActionButton fab;
 
@@ -140,6 +141,10 @@ public class MapsActivity extends AppCompatActivity
                 ft.commit();
             }
         });
+
+        if (mUser.getDisplayName() == null) {
+            fab.setVisibility(View.GONE);
+        }
     }
 
     public void updateMarkers(DataSnapshot threadIds) {
@@ -221,6 +226,7 @@ public class MapsActivity extends AppCompatActivity
         mGoogleMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
             @Override
             public void onMarkerDragStart(Marker marker) {
+                prevMarkerCoordinates = marker.getPosition();
                 // Delete thread
                 if (marker.getSnippet().equals(mUser.getUid())) {
                     mDatabase.child("threads").child(marker.getTitle()).removeValue();
@@ -237,7 +243,7 @@ public class MapsActivity extends AppCompatActivity
 
             @Override
             public void onMarkerDragEnd(Marker marker) {
-
+                marker.setPosition(prevMarkerCoordinates);
             }
         });
 
@@ -259,8 +265,12 @@ public class MapsActivity extends AppCompatActivity
     @Override
     public void onBackPressed() {
         if (currentView.equals("view") || currentView.equals("new")) {
-            fab.setVisibility(View.VISIBLE);
+            if (mUser.getDisplayName() != null) {
+                fab.setVisibility(View.VISIBLE);
+            }
             currentView = "map";
+        } else {
+            super.onBackPressed();
         }
     }
 

@@ -61,6 +61,18 @@
             android:text="@string/Sign_In"
             />
 
+        <Button
+            android:theme="@style/ThemeOverlay.MyDarkButton"
+            android:id="@+id/guest_sign_in"
+            android:layout_width="150dp"
+            android:layout_height="40dp"
+            android:layout_below="@+id/google_sign_in_button"
+            android:layout_marginTop="10dp"
+            android:layout_centerHorizontal="true"
+            android:visibility="visible"
+            tools:visibility="gone"
+            android:text="@string/guest_sign_in"/>
+
         <LinearLayout
             android:id="@+id/sign_out_and_disconnect"
             android:layout_width="fill_parent"

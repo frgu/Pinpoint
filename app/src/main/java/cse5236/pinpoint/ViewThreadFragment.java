@@ -99,6 +99,10 @@ public class ViewThreadFragment extends Fragment {
                 }
             }
         });
+        if (mUser.getDisplayName() == null) {
+            newMessageSubmit.setVisibility(View.GONE);
+            newMessage.setVisibility(View.GONE);
+        }
 
         threadRoot.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
